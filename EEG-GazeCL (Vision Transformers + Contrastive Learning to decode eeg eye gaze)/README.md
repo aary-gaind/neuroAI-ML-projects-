@@ -1,4 +1,4 @@
-EEG-GazeCL
+EEG-GazeCL (original architecture + original methodology)
 
 Contrastive Spatial Decoding of Gaze from EEG
 
