@@ -1,109 +1,93 @@
-EEG-GazeCL (original architecture + original methodology)
-
+# EEG-GazeCL
 Contrastive Spatial Decoding of Gaze from EEG
 
-EEG-GazeCL is a deep learning framework for decoding spatial gaze targets from EEG signals.
-It learns spatially consistent embeddings using a Vision-Transformer-style EEG encoder and distance-aware contrastive learning.
+## Overview
+EEG-GazeCL is a deep learning framework for decoding spatial gaze targets from EEG signals.  
+The model learns spatially consistent latent representations using a Vision-Transformer-style EEG encoder combined with distance-aware contrastive learning.
 
-Evaluated on the EEGEyeNet dataset, EEG-GazeCL achieves improved spatial accuracy, reduced catastrophic errors, and smoother gaze predictions compared to standard classification baselines.
+Evaluated on the **EEGEyeNet** dataset, EEG-GazeCL achieves improved spatial accuracy, reduced catastrophic errors, and smoother gaze predictions compared to standard classification baselines.
 
-------------------- Key Ideas
+This repository contains the **original architecture and original methodology**.
 
-EEG gaze decoding is inherently spatial, not just categorical.
+---
 
-Standard cross-entropy treats all errors equally — spatial contrastive learning differentiates nearby vs. far errors.
+## Key Ideas
+- EEG gaze decoding is inherently spatial, not purely categorical
+- Standard cross-entropy penalizes all errors equally
+- Spatial contrastive learning differentiates nearby vs. far errors
+- Nearby gaze targets → nearby embeddings
+- Far gaze targets → well-separated embeddings
+- Spatial regularization is applied early in training and annealed over time
 
-Nearby gaze targets → nearby embeddings; far targets → well-separated embeddings.
+---
 
-Regularization is applied early in training, then annealed.
+## Model Overview
 
-------------------Model Overview
+**Input**
+- EEG trials of shape `(128 channels × 500 time samples)`
 
-Input: EEG trials of shape (128 channels × 500 time samples)
+**Backbone**
+- EEG Vision Transformer (EEGViT)
+  - Temporal convolution → time patches
+  - Spatial convolution → channel grouping
+  - Transformer encoder with CLS token
 
-Backbone: EEG Vision Transformer (EEGViT)
+**Outputs**
+- Discrete gaze class (dot target)
+- Latent embedding used for spatial regularization
 
-Temporal convolution → creates time patches
+---
 
-Spatial convolution → groups channels
+## Spatial Contrastive Learning
 
-Transformer encoder with CLS token
-
-Outputs:
-
-Gaze class (discrete dot)
-
-Latent embedding (used for spatial regularization)
-
---------Spatial Contrastive Learning
-
-We introduce a distance-aware spatial contrastive loss:
-∥zi​−zj​∥∝∥gi​−gj​∥
-
+A distance-aware spatial contrastive loss is applied:
+||z_i - z_j|| ∝ ||g_i - g_j||
 
 Where:
+- `z_i` is the EEG embedding
+- `g_i` is the 2D gaze position
 
-𝑧_i = EEG embedding
+**Design choices**
+- Contrastive loss applied only during early epochs (annealing)
+- Gaussian weighting based on gaze distance
+- Joint optimization with standard cross-entropy loss
 
-g_i = 2D gaze position
+---
 
+## Evaluation Metrics
 
-Key design choices:
+In addition to classification accuracy, spatial performance is evaluated using:
 
-Contrastive loss applied only in early epochs (annealing)
+- Median pixel error
+- Mean pixel error
+- P(exact): exact dot prediction
+- P(within 1 step): nearest-neighbor prediction
+- P(within 2 steps): within two spatial steps
 
-Gaussian distance weighting
+These metrics provide a faithful assessment of spatial gaze decoding quality.
 
-Combined with standard cross-entropy
+---
 
- ---------Evaluation Metrics
+## Dataset
 
-Beyond standard classification accuracy, we measure:
-
-Median pixel error
-
-Mean pixel error
-
-P(exact): exact dot prediction
-
-P(within 1 step): nearest neighbor
-
-P(within 2 steps): two spatial steps
-
-This gives a faithful evaluation of spatial gaze decoding quality.
-
----------------Dataset
-
-EEGEyeNet – Position Task (Dot Targets)
+**EEGEyeNet – Position Task (Dot Targets)**
 
 Each subject file contains:
+- `EEG`: `(N, T, C)` EEG trials
+- `labels`: `(N, 3)` → `[trial_id, x, y]`
 
-EEG: (N, T, C) EEG trials
+Subjects are stored as separate `.npz` files and merged during training.
 
-labels: (N, 3) → [trial_id, x, y]
+---
 
-Multiple subjects are stored as separate .npz files and merged during training.
+## Results (Single Subject)
 
----------------Results (Single Subject)
+Performance after spatial contrastive learning with annealing:
 
-After spatial contrastive learning + annealing:
+- Exact accuracy: ~45%  
+  (Fine-grained spatial decoding at this resolution is rare in EEG literature)
+- Within 1 step: ~54%
+- Within 2 steps: ~71%
+- Median pixel error: ~55 px (state-of-the-art)
 
-Exact accuracy: ~45% (no paper really has fine grained decoding for the exact spatial coordinates out there, so it's pretty hard w/ eeg data)
-
-Within 1 step: ~54%
-
-Within 2 steps: ~71%
-
-Median pixel error: ~55 px (SOTA)
-
-Errors are mostly local, with rare catastrophic failures.
-
-------------- Project Structure
-EEG-GazeCL/
-├── data/                # EEGEyeNet subject files
-├── models/              # EEGViT and loss implementations
-├── notebooks/           # Colab / Jupyter demos
-├── training/            # Training scripts
-├── evaluation/          # Metrics & plotting scripts
-├── utils/               # Data loaders, preprocessing
-└── README.md
+Errors are predominantly local, with rare catastrophic failures.
