@@ -1,0 +1,2676 @@
+
+% Create the cell array
+%dataMatrices = {matrix1, matrix2, matrix3, matrix4, matrix5, matrix6};
+
+%{
+edf_data{1} = edfread("");
+edf_data{2} = edfread("");
+edf_data{3} = edfread("");
+edf_data{4} = edfread("");
+edf_data{5} = edfread("");
+edf_data{6} = edfread("");
+
+
+for i = 1:6	
+		C3{i} = edf_data{i}(:,9);
+		C4{i} = edf_data{i}(:,13);
+		Cz{i} = edf_data{i}(:,11);
+		CP3{i} = edf_data{i}(:,16);
+		CP4{i} = edf_data{i}(:, 20);
+		CPz{i} = edf_data{i}(:,18);
+		
+		FC3{i} = edf_data{i}(:, 2);
+		FC4{i} = edf_data{i}(:, 6);
+		FCz{i} = edf_data{i}(:, 4);
+end
+}%
+
+
+edf_data = edfread("");
+
+info = edfinfo("");
+
+annotations = info.Annotations;
+
+
+numElectrodes = 64;
+numSegments = 123;
+segmentLength = 160;
+
+% Preallocate the final matrix
+noneDataMatrix = zeros(numSegments * segmentLength, numElectrodes);
+
+% Process each electrode
+for electrodeIdx = 1:numElectrodes
+    % Extract data for the current electrode
+    electrodeData = edf_data{:, electrodeIdx};
+    
+    % Initialize an empty vector to concatenate data points
+    concatenatedData = [];
+    
+    % Concatenate data from each segment
+    for segmentIdx = 1:numSegments
+        concatenatedData = [concatenatedData; electrodeData{segmentIdx}];
+    end
+    
+    % Store the concatenated data in the final matrix
+    noneDataMatrix(:, electrodeIdx) = concatenatedData;
+end
+
+data = noneDataMatrix;
+
+
+%{
+
+% Define the cell arrays
+current_channel_names = {'Fc5', 'Fc3', 'Fc1', 'Fcz', 'Fc2', 'Fc4', 'Fc6', 'C5', 'C3', 'C1', 'Cz', ...
+    'C2', 'C4', 'C6', 'Cp5', 'Cp3', 'Cp1', 'Cpz', 'Cp2', ...
+    'Cp4', 'Cp6', 'Fp1', 'Fpz', 'Fp2', 'Af7', 'Af3', 'Afz', ...
+    'Af4', 'Af8', 'F7', 'F5', 'F3', 'F1', 'Fz', 'F2', 'F4', 'F6', ...
+    'F8', 'Ft7', 'Ft8', 'T7', 'T8', 'T9', 'T10', 'Tp7', 'Tp8', 'P7', ...
+    'P5', 'P3', 'P1', 'Pz', 'P2', 'P4', 'P6', 'P8', 'Po7', 'Po3', 'Poz', ...
+    'Po4', 'Po8', 'O1', 'Oz', 'O2', 'Iz'};
+
+desired_channel_names = {'Fp1','Af7','Af3','F1','F3','F5','F7','Ft7','Fc5','Fc3','Fc1','C1','C3','C5','T7','Tp7','Cp5','Cp3','Cp1', ...
+    'P1','P3','P5','P7','P9','Po7','Po3','O1','Iz','Oz','Poz','Pz','Cpz','Fpz','Fp2','Af8','Af4','Afz','Fz', ...
+    'F2','F4','F6','F8','Ft8','Fc6','Fc4','Fc2','Fcz','Cz','C2','C4','C6','T8','Tp8','Cp6','Cp4','Cp2','P2', ...
+    'P4','P6','P8','P10','Po8','Po4','O2'};
+
+% Find unique channels in both arrays
+unique_in_current = setdiff(current_channel_names, desired_channel_names);
+unique_in_desired = setdiff(desired_channel_names, current_channel_names);
+
+% Replace unique channels with 'X' in current_channel_names
+for i = 1:length(current_channel_names)
+    if ismember(current_channel_names{i}, unique_in_current)
+        current_channel_names{i} = 'X';
+    end
+end
+
+% Replace unique channels with 'X' in desired_channel_names
+for i = 1:length(desired_channel_names)
+    if ismember(desired_channel_names{i}, unique_in_desired)
+        desired_channel_names{i} = 'X';
+    end
+end
+
+
+
+
+% Initialize an empty matrix for reordered data
+reordered_data = zeros(size(data, 1), length(desired_channel_names));
+
+% Reorder columns according to the desired channel names
+for i = 1:length(desired_channel_names)
+    if strcmp(desired_channel_names{i}, 'X')
+        % Fill with zeros or handle as needed for missing channels
+        reordered_data(:, i) = 0; % Or some other handling
+    else
+        % Find the index of the current desired channel in the current channel names
+        idx = find(strcmp(current_channel_names, desired_channel_names{i}));
+        if ~isempty(idx)
+            % Reorder columns
+            reordered_data(:, i) = data(:, idx);
+        else
+            error('Channel %s not found in current channel names.', desired_channel_names{i});
+        end
+    end
+end
+
+% Update the data and channel names
+data = reordered_data;
+current_channel_names = desired_channel_names;
+
+
+
+
+
+Data = data';
+
+coordinates = importdata("coordinates.csv");
+
+X = coordinates(1,:);
+Y = coordinates(2,:);
+Z = coordinates(3,:);
+
+
+surf_lapP = laplacian_perrinX(Data,X,Y,Z,[],1e-5); 
+
+
+data = surf_lapP';
+}%
+
+%{
+
+
+C3 = edf_data(:,9);
+C4 = edf_data(:,13);
+Cz = edf_data(:,11);
+
+CP3 = edf_data(:,16);
+CP4 = edf_data(:, 20);
+CPz = edf_data(:,18);
+		
+FC3 = edf_data(:, 2);
+FC4 = edf_data(:, 6);
+FCz = edf_data(:, 4);
+
+
+
+
+		
+%dataMatrices = [C3, C4, Cz, CP3, CP4, CPz, FC3 , FC4 , FCz];
+dataMatrices = [C3, C4, Cz];
+
+C3 = data(:,13);
+C4 = data(:,50);
+FC3 = data(:,10);
+CZ = data(:,48);
+CP3 = data(:,18);
+FC4 = data(:,43);
+CP4 = data(:,55);
+CPZ = data(:,32);
+FCZ = data(:,47);
+
+
+dataMatrices = [C3,C4,FC3,CZ,CP3,FC4,CP4,CPZ,FCZ]; 
+
+}%
+
+%dataMatrices = {...}; % Cell array where each cell contains a 5x1280x9 matrix
+
+
+
+%{
+
+
+labels = [1, 1, 1, 2, 2, 2]; % Labels for each matrix (3 for Class 1, 3 for Class 2)
+
+
+
+% Separate matrices by class
+class1Data = dataMatrices(labels == 1); % Cells containing Class 1 matrices
+class2Data = dataMatrices(labels == 2); % Cells containing Class 2 matrices
+
+}%
+
+edf_data2 = edfread("");
+
+info = edfinfo("");
+
+annotations = info.Annotations
+
+
+
+
+numElectrodes = 64;
+numSegments = 123;
+segmentLength = 160;
+
+% Preallocate the final matrix
+noneDataMatrix7 = zeros(numSegments * segmentLength, numElectrodes);
+
+% Process each electrode
+for electrodeIdx = 1:numElectrodes
+    % Extract data for the current electrode
+    electrodeData = edf_data2{:, electrodeIdx};
+    
+    % Initialize an empty vector to concatenate data points
+    concatenatedData = [];
+    
+    % Concatenate data from each segment
+    for segmentIdx = 1:numSegments
+        concatenatedData = [concatenatedData; electrodeData{segmentIdx}];
+    end
+    
+    % Store the concatenated data in the final matrix
+    noneDataMatrix7(:, electrodeIdx) = concatenatedData;
+end
+
+data7 = noneDataMatrix7;
+
+edf_data3 = edfread("");
+
+info = edfinfo("");
+
+annotations = info.Annotations
+
+
+
+
+numElectrodes = 64;
+numSegments = 123;
+segmentLength = 160;
+
+
+
+% Preallocate the final matrix
+noneDataMatrix3 = zeros(numSegments * segmentLength, numElectrodes);
+
+% Process each electrode
+for electrodeIdx = 1:numElectrodes
+    % Extract data for the current electrode
+    electrodeData = edf_data3{:, electrodeIdx};
+    
+    % Initialize an empty vector to concatenate data points
+    concatenatedData = [];
+    
+    % Concatenate data from each segment
+    for segmentIdx = 1:numSegments
+        concatenatedData = [concatenatedData; electrodeData{segmentIdx}];
+    end
+    
+    % Store the concatenated data in the final matrix
+    noneDataMatrix3(:, electrodeIdx) = concatenatedData;
+end
+
+data3 = noneDataMatrix3;
+
+
+C3 = data(:,13);
+C4 = data(:,50);
+FC3 = data(:,10);
+CZ = data(:,48);
+CP3 = data(:,18);
+FC4 = data(:,43);
+CP4 = data(:,55);
+CPZ = data(:,32);
+FCZ = data(:,47);
+
+
+
+dataMatrices = [C3,C4,FC3,CZ,CP3,FC4,CP4,CPZ,FCZ]; 
+
+
+
+s_C3 = data7(:,13);
+s_C4 = data7(:,50);
+s_FC3 = data7(:,10);
+s_CZ = data7(:,48);
+s_CP3 = data7(:,18);
+s_FC4 = data7(:,43);
+s_CP4 = data7(:,55);
+s_CPZ = data7(:,32);
+s_FCZ = data7(:,47);
+
+
+
+dataMatrices7 = [s_C3,s_C4,s_FC3,s_CZ,s_CP3,s_FC4,s_CP4,s_CPZ,s_FCZ]; 
+
+
+
+
+
+
+
+t_C3 = data3(:,13);
+t_C4 = data3(:,50);
+t_FC3 = data3(:,10);
+t_CZ = data3(:,48);
+t_CP3 = data3(:,18);
+t_FC4 = data3(:,43);
+t_CP4 = data3(:,55);
+t_CPZ = data3(:,32);
+t_FCZ = data3(:,47);
+
+
+
+
+
+
+dataMatrices3 = [t_C3,t_C4,t_FC3,t_CZ,t_CP3,t_FC4,t_CP4,t_CPZ,t_FCZ]; 
+
+
+
+
+baseline = edfread("");
+
+
+
+
+numElectrodes = 64;
+numSegments = 61;
+segmentLength = 160;
+
+
+
+% Preallocate the final matrix
+noneDataMatrixB = zeros(numSegments * segmentLength, numElectrodes);
+
+% Process each electrode
+for electrodeIdx = 1:numElectrodes
+    % Extract data for the current electrode
+    electrodeData = baseline{:, electrodeIdx};
+    
+    % Initialize an empty vector to concatenate data points
+    concatenatedData = [];
+    
+    % Concatenate data from each segment
+    for segmentIdx = 1:numSegments
+        concatenatedData = [concatenatedData; electrodeData{segmentIdx}];
+    end
+    
+    % Store the concatenated data in the final matrix
+    noneDataMatrixB(:, electrodeIdx) = concatenatedData;
+end
+
+dataB = noneDataMatrixB;
+
+
+b_C3 = dataB(:,13);
+b_C4 = dataB(:,50);
+b_FC3 = dataB(:,10);
+b_CZ = dataB(:,48);
+b_CP3 = dataB(:,18);
+b_FC4 = dataB(:,43);
+b_CP4 = dataB(:,55);
+b_CPZ = dataB(:,32);
+b_FCZ = dataB(:,47);
+
+
+dataMatricesB = [b_C3,b_C4,b_FC3,b_CZ,b_CP3,b_FC4,b_CP4,b_CPZ,b_FCZ];
+
+
+
+dataMatricesB = mean(dataMatricesB,1);
+dataMatricesB = repmat(dataMatricesB, 19680,1);
+
+dataMatrices3 = dataMatrices3 - dataMatricesB;
+dataMatrices7 = dataMatrices7 - dataMatricesB;
+dataMatrices = dataMatrices - dataMatricesB;
+
+
+dataMatrices3 = dataMatrices3 - mean(dataMatrices3,1);
+dataMatrices7 = dataMatrices7 - mean(dataMatrices7,1);
+dataMatrices = dataMatrices - mean(dataMatrices,1);
+
+
+common_average = mean(dataMatrices, 2);
+dataMatrices = dataMatrices - common_average;
+%dataMatrices = A_dataMatrices - common_average;
+
+
+common_average7 = mean(dataMatrices7, 2);
+dataMatrices7 = dataMatrices7 - common_average7;
+%dataMatrices7 = A_dataMatrices7 - common_average7;
+
+
+common_average3 = mean(dataMatrices3, 2);
+dataMatrices3 = dataMatrices3 - common_average3;
+%dataMatrices3 = A_dataMatrices3 - common_average3;
+
+
+
+% Define sampling frequency
+fs = 160; % Hz
+% Define alpha frequency range (8-12 Hz)
+alpha_band = [7, 30]; % Hz
+%Filter our data 
+[b, a] = butter(4, alpha_band / (fs / 2), 'bandpass');
+
+
+
+
+
+padded_DM3 = [zeros(1000, 9); dataMatrices3; zeros(1000, 9)];
+%f_LD1_alpha = filter(b, a, padded_LD1);
+f_DM3 = filtfilt(b,a, padded_DM3);
+A_dataMatrices3 = f_DM3(1001:end-1000,:);
+
+
+padded_DM7 = [zeros(1000, 9); dataMatrices7; zeros(1000, 9)];
+%f_LD1_alpha = filter(b, a, padded_LD1);
+f_DM7 = filtfilt(b,a, padded_DM7);
+A_dataMatrices7 = f_DM7(1001:end-1000,:);
+
+
+padded_DM = [zeros(1000, 9); dataMatrices; zeros(1000, 9)];
+%f_LD1_alpha = filter(b, a, padded_LD1);
+f_DM = filtfilt(b,a, padded_DM);
+A_dataMatrices = f_DM(1001:end-1000,:);
+
+
+
+%{
+% Apply CAR to full datasets first
+common_average = mean(A_dataMatrices, 2);
+dataMatrices_CAR = A_dataMatrices - common_average;
+A_dataMatrices = A_dataMatrices - common_average;
+
+
+common_average7 = mean(A_dataMatrices7, 2);
+dataMatrices7_CAR = A_dataMatrices7 - common_average7;
+A_dataMatrices7 = A_dataMatrices7 - common_average7;
+
+
+common_average3 = mean(A_dataMatrices3, 2);
+dataMatrices3_CAR = A_dataMatrices3 - common_average3;
+A_dataMatrices3 = A_dataMatrices3 - common_average3;
+
+
+common_average = mean(A_dataMatrices, 1);
+dataMatrices_CAR = A_dataMatrices - common_average;
+A_dataMatrices = A_dataMatrices - common_average;
+
+common_average7 = mean(A_dataMatrices7, 1);
+A_dataMatrices7 = A_dataMatrices7 - common_average7;
+
+
+common_average3 = mean(A_dataMatrices3, 1);
+ A_dataMatrices3 = A_dataMatrices3 - common_average3;
+
+}%
+
+
+
+A_dataMatrices = dataMatrices;
+A_dataMatrices7 = dataMatrices7;
+A_dataMatrices3 = dataMatrices3;
+
+Left_data_1 = A_dataMatrices(656:1296,:);
+Left_data_2 = A_dataMatrices(12464:13104,:); %77.9-81.9
+%Left_data_2 = dataMatrices(3280:3920,:);
+%Left_data_3 = dataMatrices(7216:7856,:);
+Left_data_3 = A_dataMatrices(17712:18352,:); %110.7-114.7
+
+
+Right_data_1 = A_dataMatrices(1968:2608,:);
+Right_data_2 = A_dataMatrices(4592:5232,:);
+Right_data_3 = A_dataMatrices(5904:6544,:);
+
+
+
+
+%T1
+S_Left_data_1 = A_dataMatrices7(1968:2608,:); %12.3-16.3
+S_Left_data_2 = A_dataMatrices7(8528:9168,:); %53.3-57.3
+S_Left_data_3 = A_dataMatrices7(17712:18352,:); %110.7-114.7
+
+
+%T2
+S_Right_data_1 = A_dataMatrices7(656:1296,:); %4.1-8.1
+S_Right_data_2 = A_dataMatrices7(11152:11792,:); %69.7-73.7
+S_Right_data_3 = A_dataMatrices7(19024:19520,:); %118.9-122
+
+
+
+
+%T1
+E_Left_data_1 = A_dataMatrices3(656:1296,:); %4.1-8.1
+E_Left_data_2 = A_dataMatrices3(8528:9168,:); %53.3-57.3
+E_Left_data_3 = A_dataMatrices3(19024:19664,:); %118.9-122.9
+
+
+
+%T2
+E_Right_data_1 = A_dataMatrices3(1968:2608,:); %12.3-16.3
+E_Right_data_2 = A_dataMatrices3(9840:10480,:); %61.5-65.5
+E_Right_data_3 = A_dataMatrices3(16400:17040,:); %102.5-106.5
+
+
+LD1_alpha_cov = cov(Left_data_1);
+LD1_alpha_cov = LD1_alpha_cov	/ trace(LD1_alpha_cov);
+								
+LD2_alpha_cov = cov(Left_data_2);
+LD2_alpha_cov = LD2_alpha_cov	/ trace(LD2_alpha_cov);
+
+
+LD3_alpha_cov = cov(Left_data_3);
+LD3_alpha_cov = LD3_alpha_cov	/ trace(LD3_alpha_cov);
+
+
+RD1_alpha_cov = cov(Right_data_1);
+RD1_alpha_cov = RD1_alpha_cov	/ trace(RD1_alpha_cov);
+
+
+RD2_alpha_cov = cov(Right_data_2);
+RD2_alpha_cov = RD2_alpha_cov	/ trace(RD2_alpha_cov);
+
+
+RD3_alpha_cov = cov(Right_data_3);
+RD3_alpha_cov = RD3_alpha_cov	/ trace(RD3_alpha_cov);
+
+%----------------------------------
+
+S_LD1_alpha_cov = cov(S_Left_data_1);
+S_LD1_alpha_cov = S_LD1_alpha_cov	/ trace(S_LD1_alpha_cov);
+
+S_LD2_alpha_cov = cov(S_Left_data_2);
+S_LD2_alpha_cov = S_LD2_alpha_cov	/ trace(S_LD2_alpha_cov);
+
+S_LD3_alpha_cov = cov(S_Left_data_3);
+S_LD3_alpha_cov = S_LD3_alpha_cov	/ trace(S_LD3_alpha_cov);
+
+S_RD1_alpha_cov = cov(S_Right_data_1);
+S_RD1_alpha_cov = S_RD1_alpha_cov	/ trace(S_RD1_alpha_cov);
+
+S_RD2_alpha_cov = cov(S_Right_data_2);
+S_RD2_alpha_cov = S_RD2_alpha_cov	/ trace(S_RD2_alpha_cov);
+
+S_RD3_alpha_cov = cov(S_Right_data_3);
+S_RD3_alpha_cov = S_RD3_alpha_cov	/ trace(S_RD3_alpha_cov);
+
+
+
+%---------------------------------
+
+E_LD1_alpha_cov = cov(E_Left_data_1);
+E_LD1_alpha_cov = E_LD1_alpha_cov	/ trace(E_LD1_alpha_cov);
+
+E_LD2_alpha_cov = cov(E_Left_data_2);
+E_LD2_alpha_cov = E_LD2_alpha_cov	/ trace(E_LD2_alpha_cov);
+
+E_LD3_alpha_cov = cov(E_Left_data_3);
+E_LD3_alpha_cov = E_LD3_alpha_cov	/ trace(E_LD3_alpha_cov);
+
+
+E_RD1_alpha_cov = cov(E_Right_data_1);
+E_RD1_alpha_cov = E_RD1_alpha_cov	/ trace(E_RD1_alpha_cov);
+
+E_RD2_alpha_cov = cov(E_Right_data_2);
+E_RD2_alpha_cov = E_RD2_alpha_cov	/ trace(E_RD2_alpha_cov);
+
+E_RD3_alpha_cov = cov(E_Right_data_3);
+E_RD3_alpha_cov = E_RD3_alpha_cov	/ trace(E_RD3_alpha_cov);
+
+
+
+%-------------------------------
+
+
+A_Lclass_avg = (LD1_alpha_cov + LD2_alpha_cov + LD3_alpha_cov + S_LD1_alpha_cov + S_LD2_alpha_cov + S_LD3_alpha_cov + E_LD1_alpha_cov + E_LD2_alpha_cov + E_LD3_alpha_cov) / 9;   
+A_Rclass_avg = (RD1_alpha_cov + RD2_alpha_cov + RD3_alpha_cov + S_RD1_alpha_cov + S_RD2_alpha_cov + S_RD3_alpha_cov + E_RD1_alpha_cov + E_RD2_alpha_cov + E_RD3_alpha_cov  ) / 9;
+
+
+
+
+
+
+A_cov_composite = A_Lclass_avg + A_Rclass_avg;
+
+
+[V, D] = eig(A_cov_composite);
+
+
+
+% Ensure eigenvalues are sorted in descending order
+[~, idx] = sort(diag(D), 'descend');
+V = V(:, idx);
+D = D(:,idx);
+
+% Whitening matrix (P)
+P = D^(-1/2) * V';
+
+
+
+
+
+% Whitened covariance matrices for both classes
+S_H = P * A_Lclass_avg * P';
+S_F = P * A_Rclass_avg * P';
+
+% Step 3: CSP using the whitened matrices
+% Generalized eigenvalue decomposition: S_H * U = lambda * S_F * U
+[U, Lambda] = eig(S_H, S_H+S_F);
+
+% Sort eigenvalues and eigenvectors
+[~, idx] = sort(diag(Lambda), 'descend');
+U = U(:, idx);
+Lambda = Lambda(:,idx);
+
+
+
+% CSP projection matrix
+W = U' * P;
+
+
+k = 4; % Number of components from top and bottom
+W_top = W(1:k, :); % Top components
+W_bottom = W(end-k+1:end, :); % Bottom components
+W_selected = [W_top; W_bottom]; % Combine top and bottom components
+
+kdata{1} = A_dataMatrices(3280:3920,:);
+
+kdata{2} = A_dataMatrices(9840:10480,:); %61.5-65.5
+%kdata{2} = dataMatrices(12464:13104,:); %77.9-81.9
+kdata{3} = A_dataMatrices(15088:15728,:); %94.3-98.3
+%kdata{4} = dataMatrices(17712:18352,:); %110.7-114.7
+
+kdata{4} = A_dataMatrices(7216:7856,:);
+
+
+%T2
+bdata{1} = A_dataMatrices(8528:9168,:); %53.3-57.3
+bdata{2} = A_dataMatrices(11152:11792,:); %69.7-73.7
+bdata{3} = A_dataMatrices(13776:14416,:); %86.1 - 90.1
+bdata{4} = A_dataMatrices(16400:17040,:); %102.5 - 106.5
+
+
+
+
+for i = 1:4
+
+	A_Hug1{i} = W_selected * kdata{i}' ;  % Projection for left-hand movement
+	A_Hug2{i} = W_selected * bdata{i}'; % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+% Define sampling frequency
+fs = 160; % Hz
+% Define alpha frequency range (8-12 Hz)
+alpha_band = [10, 12]; % Hz
+%Filter our data 
+[b, a] = butter(4, alpha_band / (fs / 2), 'bandpass');
+			
+
+
+for i = 1:4
+
+
+			
+			padded_DM3 = [zeros(1000, 9); A_Hug1{i}; zeros(1000, 9)];
+			%f_LD1_alpha = filter(b, a, padded_LD1);
+			f_DM3 = filtfilt(b,a, padded_DM3);
+			A_Hug1{i} = f_DM3(1001:end-1000,:);
+			
+			
+			padded_DM7 = [zeros(1000, 9); A_Hug2{i}; zeros(1000, 9)];
+			%f_LD1_alpha = filter(b, a, padded_LD1);
+			f_DM7 = filtfilt(b,a, padded_DM7);
+			A_Hug2{i} = f_DM7(1001:end-1000,:);
+			
+
+
+end
+
+
+for i = 1:4
+
+	var1{i} =log(var(A_Hug1{1}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+for i = 1:4
+
+	var2{i} =log(var(A_Hug2{1}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+for i = 1:4
+
+	var3{i} =log(var(A_Hug1{2}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+for i = 1:4
+
+	var4{i} =log(var(A_Hug2{2}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+
+for i = 1:4
+
+	var5{i} =log(var(A_Hug1{3}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+for i = 1:4
+
+	var6{i} =log(var(A_Hug2{3}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+
+for i = 1:4
+
+	var7{i} =log(var(A_Hug1{4}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+for i = 1:4
+
+	var8{i} =log(var(A_Hug2{4}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+
+
+
+
+%T1
+%S_data{1} = dataMatrices7(1968:2608,:); %12.3-16.3
+S_data{1} = A_dataMatrices7(3280:3920,:); %20.5-24.5
+S_data{2} = A_dataMatrices7(7216:7856,:); %45.1-49.1
+%S_data{4} = dataMatrices7(8528:9168,:); %53.3-57.3
+S_data{3} = A_dataMatrices7(12464:13104,:); %77.9-81.9
+S_data{4} = A_dataMatrices7(13776:14416,:); %86.1-90.1
+%S_data{7} = dataMatrices7(17712:18352,:); %110.7-114.7
+
+
+
+
+%T2
+%H_data{1} = dataMatrices7(656:1296,:); %4.1-8.1
+H_data{1} = A_dataMatrices7(4592:5232,:); %28.7-32.7
+H_data{2} = A_dataMatrices7(5904:6544,:); %36.9-40.9
+H_data{3} = A_dataMatrices7(9840:10480,:); %61.5-65.5
+%H_data{4} = dataMatrices7(11152:11792,:); %69.7-73.7
+H_data{4} = A_dataMatrices7(15088:15728,:); %94.3-98.3
+H_data{5} = A_dataMatrices7(16400:17040,:); %102.5-106.5
+%H_data{7} = dataMatrices7(19024:19520,:); %118.9-122
+
+
+
+
+
+
+for i = 1:4
+
+	A_Hug3{i} = W_selected * S_data{i}' ;  % Projection for left-hand movement
+	A_Hug4{i} = W_selected * H_data{i}'; % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+
+	
+
+end
+
+for i = 1:4
+
+	K_var1{i} =log(var(A_Hug3{1}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+for i = 1:4
+
+	K_var2{i} =log(var(A_Hug4{1}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+for i = 1:4
+
+	K_var3{i} =log(var(A_Hug3{2}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+for i = 1:4
+
+	K_var4{i} =log(var(A_Hug4{2}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+
+for i = 1:4
+
+	K_var5{i} =log(var(A_Hug3{3}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+for i = 1:4
+
+	K_var6{i} =log(var(A_Hug4{3}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+
+for i = 1:4
+
+	K_var7{i} =log(var(A_Hug3{4}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+for i = 1:4
+
+	K_var8{i} =log(var(A_Hug4{4}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+%T1
+%E_data{1} = data3(656:1296,:); %4.1-8.1
+E_data{1} = A_dataMatrices3(3280:3920,:); %20.5-24.5
+E_data{2} = A_dataMatrices3(5904:6544,:); %36.9-40.9
+%E_data(4) = data3(8528:9168,:); %53.3-57.3
+E_data{3} = A_dataMatrices3(12464:13104,:); %77.9-81.9
+E_data{4} = A_dataMatrices3(13776:14416,:); %86.1-90.1
+E_data{5} = A_dataMatrices3(17712:18368,:); %110.7-114.8
+%E_data(8) = data3(19024:19664,:); %118.9-122.9
+
+
+
+%T2
+%E_data(8) = data3(1968:2608,:); %12.3-16.3
+F_data{1} = A_dataMatrices3(4592:5232,:); %28.7-32.7
+F_data{2}= A_dataMatrices3(7216:7856,:); %45.1-49.1
+%E_data(11) = data3(9840:10480,:); %61.5-65.5
+F_data{3} = A_dataMatrices3(11152:11792,:); %69.7-73.7
+F_data{4} = A_dataMatrices3(15088:15728,:); %94.3-98.3
+%E_data(14) = data3(16400:17040,:); %102.5-106.5
+
+
+
+
+
+for i = 1:4
+
+	A_Hug5{i} = W_selected * E_data{i}' ;  % Projection for left-hand movement
+	A_Hug6{i} = W_selected * F_data{i}'; % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+
+	
+
+end
+
+for i = 1:4
+
+	E_var1{i} =log(var(A_Hug5{1}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+for i = 1:4
+
+	E_var2{i} =log(var(A_Hug6{1}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+for i = 1:4
+
+	E_var3{i} =log(var(A_Hug5{2}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+for i = 1:4
+
+	E_var4{i} =log(var(A_Hug6{2}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+
+for i = 1:4
+
+	E_var5{i} =log(var(A_Hug5{3}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+for i = 1:4
+
+	E_var6{i} =log(var(A_Hug6{3}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+
+for i = 1:4
+
+	E_var7{i} =log(var(A_Hug5{4}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+for i = 1:4
+
+	E_var8{i} =log(var(A_Hug6{4}(i,:))) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+Left = [var1;var3;var5;var7;K_var1;K_var3;K_var5;K_var7;E_var1;E_var3;E_var5;E_var7];
+Right = [var2;var4;var6;var8;K_var2;K_var4;K_var6;K_var8;E_var2;E_var4;E_var6;E_var8];
+
+for i = 1:4
+
+	mean1{i} = mean(A_Hug1{1}(i,:)) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+for i = 1:4
+
+	mean2{i} = mean(A_Hug2{1}(i,:)) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+for i = 1:4
+
+	mean3{i} = mean(A_Hug1{2}(i,:)) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+for i = 1:4
+
+	mean4{i} = mean(A_Hug2{2}(i,:)) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+
+for i = 1:4
+
+	mean5{i} = mean(A_Hug1{3}(i,:)) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+for i = 1:4
+
+	mean6{i} = mean(A_Hug2{3}(i,:)) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+
+for i = 1:4
+
+	mean7{i} = mean(A_Hug1{4}(i,:)) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+for i = 1:4
+
+	mean8{i} = mean(A_Hug2{4}(i,:)) ;  % Projection for left-hand movement
+ % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+
+end
+
+
+
+
+
+
+%data -> 9x20000 matrix 
+
+
+% Define sampling frequency
+fs = 160; % Hz
+% Define alpha frequency range (8-12 Hz)
+alpha_band = [10, 12]; % Hz
+%Filter our data 
+[b, a] = butter(4, alpha_band / (fs / 2), 'bandpass');
+
+
+
+
+
+
+
+
+
+%---------------------------------------------------------
+
+padded_LD1 = [zeros(160, 9); Left_data_1; zeros(160, 9)];
+%f_LD1_alpha = filter(b, a, padded_LD1);
+f_LD1_alpha = filtfilt(b,a, padded_LD1);
+LD1_alpha = f_LD1_alpha(161:end-160,:);
+%LD1_alpha = zscore(LD1_alpha);
+
+
+%LD1_alpha = LD1_alpha((filterOrder + 1):(end - filterOrder),:);
+
+padded_LD2 = [zeros(160, 9); Left_data_2; zeros(160, 9)];
+%f_LD2_alpha = filter(b,a, padded_LD2);
+f_LD2_alpha = filtfilt(b,a, padded_LD2);
+LD2_alpha = f_LD2_alpha(161:end-160,:);
+%LD2_alpha = zscore(LD2_alpha);
+
+
+%LD2_alpha = LD2_alpha((filterOrder + 1):(end - filterOrder),:);
+
+padded_LD3 = [zeros(160, 9); Left_data_3; zeros(160, 9)];
+%f_LD3_alpha = filter(b,a, padded_LD3);
+f_LD3_alpha = filtfilt(b,a,padded_LD3);
+LD3_alpha = f_LD3_alpha(161:end-160,:);
+%LD3_alpha = zscore(LD3_alpha);
+
+%LD3_alpha = LD3_alpha((filterOrder + 1):(end - filterOrder),:);
+
+
+
+
+
+
+padded_RD1 = [zeros(160, 9); Right_data_1; zeros(160, 9)];
+%f_RD1_alpha = filter(b, a, padded_RD1);
+f_RD1_alpha = filtfilt(b,a,padded_RD1);
+RD1_alpha = f_RD1_alpha(161:end-160,:);
+%RD1_alpha = zscore(RD1_alpha);
+
+%RD1_alpha = RD1_alpha((filterOrder + 1):(end - filterOrder),:);
+
+
+padded_RD2 = [zeros(160, 9); Right_data_2; zeros(160, 9)];
+%f_RD2_alpha = filter(b,a, padded_RD2);
+f_RD2_alpha = filtfilt(b,a,padded_RD2);
+RD2_alpha = f_RD2_alpha(161:end-160,:);
+%RD2_alpha = zscore(RD2_alpha);
+
+%RD2_alpha = RD2_alpha((filterOrder + 1):(end - filterOrder),:);
+
+padded_RD3 = [zeros(160, 9); Right_data_3; zeros(160, 9)];
+%f_RD3_alpha = filter(b,a, padded_RD3);
+f_RD3_alpha = filtfilt(b,a,padded_RD3);
+RD3_alpha = f_RD3_alpha(161:end-160,:);
+%RD3_alpha = zscore(RD3_alpha);
+
+
+%RD3_alpha = RD3_alpha((filterOrder + 1):(end - filterOrder),:);
+
+
+
+%---------------------------------------------------------------------------
+
+
+
+
+S_padded_LD1 = [zeros(160, 9); S_Left_data_1; zeros(160, 9)];
+%f_LD1_alpha = filter(b, a, padded_LD1);
+S_f_LD1_alpha = filtfilt(b,a, S_padded_LD1);
+S_LD1_alpha = S_f_LD1_alpha(161:end-160,:);
+%S_LD1_alpha = zscore(S_LD1_alpha);
+
+
+
+%LD1_alpha = LD1_alpha((filterOrder + 1):(end - filterOrder),:);
+
+S_padded_LD2 = [zeros(160, 9); S_Left_data_2; zeros(160, 9)];
+%f_LD2_alpha = filter(b,a, padded_LD2);
+S_f_LD2_alpha = filtfilt(b,a, S_padded_LD2);
+S_LD2_alpha = S_f_LD2_alpha(161:end-160,:);
+%S_LD2_alpha = zscore(S_LD2_alpha);
+
+
+%LD2_alpha = LD2_alpha((filterOrder + 1):(end - filterOrder),:);
+
+S_padded_LD3 = [zeros(160, 9); S_Left_data_3; zeros(160, 9)];
+%f_LD3_alpha = filter(b,a, padded_LD3);
+S_f_LD3_alpha = filtfilt(b,a,S_padded_LD3);
+S_LD3_alpha = S_f_LD3_alpha(161:end-160,:);
+%S_LD3_alpha = zscore(S_LD3_alpha);
+
+%LD3_alpha = LD3_alpha((filterOrder + 1):(end - filterOrder),:);
+
+
+
+
+
+
+S_padded_RD1 = [zeros(160, 9); S_Right_data_1; zeros(160, 9)];
+%f_RD1_alpha = filter(b, a, padded_RD1);
+S_f_RD1_alpha = filtfilt(b,a,S_padded_RD1);
+S_RD1_alpha = S_f_RD1_alpha(161:end-160,:);
+%S_RD1_alpha = zscore(S_RD1_alpha)
+
+%RD1_alpha = RD1_alpha((filterOrder + 1):(end - filterOrder),:);
+
+
+S_padded_RD2 = [zeros(160, 9); S_Right_data_2; zeros(160, 9)];
+%f_RD2_alpha = filter(b,a, padded_RD2);
+S_f_RD2_alpha = filtfilt(b,a,S_padded_RD2);
+S_RD2_alpha = S_f_RD2_alpha(161:end-160,:);
+%S_RD2_alpha = zscore(S_RD2_alpha)
+
+%RD2_alpha = RD2_alpha((filterOrder + 1):(end - filterOrder),:);
+
+S_padded_RD3 = [zeros(160, 9); S_Right_data_3; zeros(160, 9)];
+%f_RD3_alpha = filter(b,a, padded_RD3);
+S_f_RD3_alpha = filtfilt(b,a,S_padded_RD3);
+S_RD3_alpha = S_f_RD3_alpha(161:end-160,:);
+%S_RD3_alpha = zscore(S_RD3_alpha)
+
+%----------------------------------------------------------------------------
+
+E_padded_LD1 = [zeros(160, 9); E_Left_data_1; zeros(160, 9)];
+%f_LD1_alpha = filter(b, a, padded_LD1);
+E_f_LD1_alpha = filtfilt(b,a, E_padded_LD1);
+E_LD1_alpha = E_f_LD1_alpha(161:end-160,:);
+%LD1_alpha = zscore(LD1_alpha);
+%E_LD1_alpha = zscore(E_LD1_alpha)
+
+
+%LD1_alpha = LD1_alpha((filterOrder + 1):(end - filterOrder),:);
+
+E_padded_LD2 = [zeros(160, 9); E_Left_data_2; zeros(160, 9)];
+%f_LD2_alpha = filter(b,a, padded_LD2);
+E_f_LD2_alpha = filtfilt(b,a, E_padded_LD2);
+E_LD2_alpha = E_f_LD2_alpha(161:end-160,:);
+%LD2_alpha = zscore(LD2_alpha);
+%E_LD2_alpha  = zscore(E_LD2_alpha);
+
+%LD2_alpha = LD2_alpha((filterOrder + 1):(end - filterOrder),:);
+
+E_padded_LD3 = [zeros(160, 9); E_Left_data_3; zeros(160, 9)];
+%f_LD3_alpha = filter(b,a, padded_LD3);
+E_f_LD3_alpha = filtfilt(b,a,E_padded_LD3);
+E_LD3_alpha = E_f_LD3_alpha(161:end-160,:);
+%LD3_alpha = zscore(LD3_alpha);
+%E_LD3_alpha = zscore(E_LD3_alpha)
+%LD3_alpha = LD3_alpha((filterOrder + 1):(end - filterOrder),:);
+
+
+
+
+
+
+E_padded_RD1 = [zeros(160, 9); E_Right_data_1; zeros(160, 9)];
+%f_RD1_alpha = filter(b, a, padded_RD1);
+E_f_RD1_alpha = filtfilt(b,a,E_padded_RD1);
+E_RD1_alpha = E_f_RD1_alpha(161:end-160,:);
+%E_RD1_alpha = zscore(E_RD1_alpha)
+
+%RD1_alpha = RD1_alpha((filterOrder + 1):(end - filterOrder),:);
+
+
+E_padded_RD2 = [zeros(160, 9); E_Right_data_2; zeros(160, 9)];
+%f_RD2_alpha = filter(b,a, padded_RD2);
+E_f_RD2_alpha = filtfilt(b,a,E_padded_RD2);
+E_RD2_alpha = E_f_RD2_alpha(161:end-160,:);
+%E_RD2_alpha = zscore(E_RD2_alpha)
+
+%RD2_alpha = RD2_alpha((filterOrder + 1):(end - filterOrder),:);
+
+E_padded_RD3 = [zeros(160, 9); E_Right_data_3; zeros(160, 9)];
+%f_RD3_alpha = filter(b,a, padded_RD3);
+E_f_RD3_alpha = filtfilt(b,a,E_padded_RD3);
+E_RD3_alpha = E_f_RD3_alpha(161:end-160,:);
+%E_RD3_alpha = zscore(E_RD3_alpha);
+
+
+
+edf_baseline = edfread("S015R01.edf");
+
+
+
+numElectrodes = 64;
+numSegments = 61;
+segmentLength = 160;
+
+% Preallocate the final matrix
+noneDataMatrix_B = zeros(numSegments * segmentLength, numElectrodes);
+
+% Process each electrode
+for electrodeIdx = 1:numElectrodes
+    % Extract data for the current electrode
+    electrodeData = edf_baseline{:, electrodeIdx};
+    
+    % Initialize an empty vector to concatenate data points
+    concatenatedData = [];
+    
+    % Concatenate data from each segment
+    for segmentIdx = 1:numSegments
+        concatenatedData = [concatenatedData; electrodeData{segmentIdx}];
+    end
+    
+    % Store the concatenated data in the final matrix
+    noneDataMatrix_B(:, electrodeIdx) = concatenatedData;
+end
+
+data_B = noneDataMatrix_B;
+
+
+
+
+% Define the cell arrays
+current_channel_names = {'Fc5', 'Fc3', 'Fc1', 'Fcz', 'Fc2', 'Fc4', 'Fc6', 'C5', 'C3', 'C1', 'Cz', ...
+    'C2', 'C4', 'C6', 'Cp5', 'Cp3', 'Cp1', 'Cpz', 'Cp2', ...
+    'Cp4', 'Cp6', 'Fp1', 'Fpz', 'Fp2', 'Af7', 'Af3', 'Afz', ...
+    'Af4', 'Af8', 'F7', 'F5', 'F3', 'F1', 'Fz', 'F2', 'F4', 'F6', ...
+    'F8', 'Ft7', 'Ft8', 'T7', 'T8', 'T9', 'T10', 'Tp7', 'Tp8', 'P7', ...
+    'P5', 'P3', 'P1', 'Pz', 'P2', 'P4', 'P6', 'P8', 'Po7', 'Po3', 'Poz', ...
+    'Po4', 'Po8', 'O1', 'Oz', 'O2', 'Iz'};
+
+desired_channel_names = {'Fp1','Af7','Af3','F1','F3','F5','F7','Ft7','Fc5','Fc3','Fc1','C1','C3','C5','T7','Tp7','Cp5','Cp3','Cp1', ...
+    'P1','P3','P5','P7','P9','Po7','Po3','O1','Iz','Oz','Poz','Pz','Cpz','Fpz','Fp2','Af8','Af4','Afz','Fz', ...
+    'F2','F4','F6','F8','Ft8','Fc6','Fc4','Fc2','Fcz','Cz','C2','C4','C6','T8','Tp8','Cp6','Cp4','Cp2','P2', ...
+    'P4','P6','P8','P10','Po8','Po4','O2'};
+
+% Find unique channels in both arrays
+unique_in_current = setdiff(current_channel_names, desired_channel_names);
+unique_in_desired = setdiff(desired_channel_names, current_channel_names);
+
+% Replace unique channels with 'X' in current_channel_names
+for i = 1:length(current_channel_names)
+    if ismember(current_channel_names{i}, unique_in_current)
+        current_channel_names{i} = 'X';
+    end
+end
+
+% Replace unique channels with 'X' in desired_channel_names
+for i = 1:length(desired_channel_names)
+    if ismember(desired_channel_names{i}, unique_in_desired)
+        desired_channel_names{i} = 'X';
+    end
+end
+
+
+
+
+% Initialize an empty matrix for reordered data
+reordered_data_B = zeros(size(data_B, 1), length(desired_channel_names));
+
+% Reorder columns according to the desired channel names
+for i = 1:length(desired_channel_names)
+    if strcmp(desired_channel_names{i}, 'X')
+        % Fill with zeros or handle as needed for missing channels
+        reordered_data_B(:, i) = 0; % Or some other handling
+    else
+        % Find the index of the current desired channel in the current channel names
+        idx = find(strcmp(current_channel_names, desired_channel_names{i}));
+        if ~isempty(idx)
+            % Reorder columns
+            reordered_data_B(:, i) = data_B(:, idx);
+        else
+            error('Channel %s not found in current channel names.', desired_channel_names{i});
+        end
+    end
+end
+
+% Update the data and channel names
+data_B = reordered_data_B;
+current_channel_names = desired_channel_names;
+
+
+
+
+
+Data_B = data_B';
+
+coordinates = importdata("coordinates.csv");
+
+X = coordinates(1,:);
+Y = coordinates(2,:);
+Z = coordinates(3,:);
+
+
+surf_lapP = laplacian_perrinX(Data_B,X,Y,Z,[],1e-5); 
+
+
+data_B = surf_lapP';
+
+
+
+
+
+B_C3 = data_B(:,13);
+B_C4 = data_B(:,50);
+B_FC3 = data_B(:,10);
+B_CZ = data_B(:,48);
+B_CP3 = data_B(:,18);
+B_FC4 = data_B(:,43);
+B_CP4 = data_B(:,55);
+B_CPZ = data_B(:,32);
+B_FCZ = data_B(:,47);
+
+
+
+dataMatrices_B = [B_C3,B_C4,B_FC3,B_CZ,B_CP3,B_FC4,B_CP4,B_CPZ,B_FCZ]; 
+
+
+% Define sampling frequency
+fs = 160; % Hz
+% Define alpha frequency range (8-12 Hz)
+alpha_band = [7, 30]; % Hz
+%Filter our data 
+[b, a] = butter(4, alpha_band / (fs / 2), 'bandpass');
+
+
+filterOrder = 4;  % Your filter order
+
+
+
+padded_DMB = [zeros(160, 9); dataMatrices_B; zeros(160, 9)];
+%f_LD1_alpha = filter(b, a, padded_LD1);
+f_DMB_alpha = filtfilt(b,a, padded_DMB);
+DMB_alpha = f_DMB_alpha(161:end-160,:);
+%LD1_alpha = zscore(LD1_alpha);
+
+
+baseline_data = mean(DMB_alpha);
+
+
+
+LD1_alpha = LD1_alpha - baseline_data;
+
+LD2_alpha = LD2_alpha - baseline_data;
+
+LD3_alpha = LD3_alpha - baseline_data;
+
+RD1_alpha = RD1_alpha - baseline_data;
+
+RD2_alpha = RD2_alpha - baseline_data;
+
+RD3_alpha = RD3_alpha - baseline_data;
+
+S_LD1_alpha = S_LD1_alpha - baseline_data;
+
+S_LD2_alpha = S_LD2_alpha - baseline_data;
+
+S_LD3_alpha = S_LD3_alpha - baseline_data;
+
+S_RD1_alpha = S_RD1_alpha - baseline_data;
+
+S_RD2_alpha = S_RD2_alpha - baseline_data;
+
+S_RD3_alpha = S_RD3_alpha - baseline_data;
+
+E_LD1_alpha = E_LD1_alpha - baseline_data;
+
+E_LD2_alpha = E_LD2_alpha - baseline_data;
+
+E_LD3_alpha = E_LD3_alpha - baseline_data;
+
+E_RD1_alpha = E_RD1_alpha - baseline_data;
+
+E_RD2_alpha = E_RD2_alpha - baseline_data;
+
+E_RD3_alpha = E_RD3_alpha - baseline_data;
+
+LD1_alpha_cov = cov(LD1_alpha);
+LD1_alpha_cov = LD1_alpha_cov	/ trace(LD1_alpha_cov);
+								
+LD2_alpha_cov = cov(LD2_alpha);
+LD2_alpha_cov = LD2_alpha_cov	/ trace(LD2_alpha_cov);
+
+
+LD3_alpha_cov = cov(LD3_alpha);
+LD3_alpha_cov = LD3_alpha_cov	/ trace(LD3_alpha_cov);
+
+
+RD1_alpha_cov = cov(RD1_alpha);
+RD1_alpha_cov = RD1_alpha_cov	/ trace(RD1_alpha_cov);
+
+
+RD2_alpha_cov = cov(RD2_alpha);
+RD2_alpha_cov = RD2_alpha_cov	/ trace(RD2_alpha_cov);
+
+
+RD3_alpha_cov = cov(RD3_alpha);
+RD3_alpha_cov = RD3_alpha_cov	/ trace(RD3_alpha_cov);
+
+%----------------------------------
+
+S_LD1_alpha_cov = cov(S_LD1_alpha);
+S_LD1_alpha_cov = S_LD1_alpha_cov	/ trace(S_LD1_alpha_cov);
+
+S_LD2_alpha_cov = cov(S_LD2_alpha);
+S_LD2_alpha_cov = S_LD2_alpha_cov	/ trace(S_LD2_alpha_cov);
+
+S_LD3_alpha_cov = cov(S_LD3_alpha);
+S_LD3_alpha_cov = S_LD3_alpha_cov	/ trace(S_LD3_alpha_cov);
+
+S_RD1_alpha_cov = cov(S_RD1_alpha);
+S_RD1_alpha_cov = S_RD1_alpha_cov	/ trace(S_RD1_alpha_cov);
+
+S_RD2_alpha_cov = cov(S_RD2_alpha);
+S_RD2_alpha_cov = S_RD2_alpha_cov	/ trace(S_RD2_alpha_cov);
+
+S_RD3_alpha_cov = cov(S_RD3_alpha);
+S_RD3_alpha_cov = S_RD3_alpha_cov	/ trace(S_RD3_alpha_cov);
+
+
+
+%---------------------------------
+
+E_LD1_alpha_cov = cov(E_LD1_alpha);
+E_LD1_alpha_cov = E_LD1_alpha_cov	/ trace(E_LD1_alpha_cov);
+
+E_LD2_alpha_cov = cov(E_LD2_alpha);
+E_LD2_alpha_cov = E_LD2_alpha_cov	/ trace(E_LD2_alpha_cov);
+
+E_LD3_alpha_cov = cov(E_LD3_alpha);
+E_LD3_alpha_cov = E_LD3_alpha_cov	/ trace(E_LD3_alpha_cov);
+
+
+E_RD1_alpha_cov = cov(E_RD1_alpha);
+E_RD1_alpha_cov = E_RD1_alpha_cov	/ trace(E_RD1_alpha_cov);
+
+E_RD2_alpha_cov = cov(E_RD2_alpha);
+E_RD2_alpha_cov = E_RD2_alpha_cov	/ trace(E_RD2_alpha_cov);
+
+E_RD3_alpha_cov = cov(E_RD3_alpha);
+E_RD3_alpha_cov = E_RD3_alpha_cov	/ trace(E_RD3_alpha_cov);
+
+
+
+%-------------------------------
+
+
+A_Lclass_avg = (LD1_alpha_cov + LD2_alpha_cov + LD3_alpha_cov + S_LD1_alpha_cov + S_LD2_alpha_cov + S_LD3_alpha_cov + E_LD1_alpha_cov + E_LD2_alpha_cov + E_LD3_alpha_cov) / 9;   
+A_Rclass_avg = (RD1_alpha_cov + RD2_alpha_cov + RD3_alpha_cov + S_RD1_alpha_cov + S_RD2_alpha_cov + S_RD3_alpha_cov + E_RD1_alpha_cov + E_RD2_alpha_cov + E_RD3_alpha_cov  ) / 9;
+
+
+LD1_beta_cov = cov(LD1_beta);
+LD2_beta_cov = cov(LD2_beta);
+LD3_beta_cov = cov(LD3_beta);
+
+RD1_beta_cov = cov(RD1_beta);
+RD2_beta_cov = cov(RD2_beta);
+RD3_beta_cov = cov(RD3_beta);
+
+B_Lclass_avg = (LD1_beta_cov + LD2_beta_cov + LD3_beta_cov) / 3;
+B_Rclass_avg = (RD1_beta_cov + RD2_beta_cov + RD3_beta_cov) / 3;
+
+
+
+
+
+
+A_cov_composite = A_Lclass_avg + A_Rclass_avg;
+
+% Perform generalized eigenvalue decomposition
+[V, D] = eig(A_Lclass_avg, A_cov_composite);  % V are the eigenvectors, D are the eigenvalues
+
+
+% Sort eigenvalues and corresponding eigenvectors
+[~, ind] = sort(diag(D), 'descend');  % Sort in descending order
+V = V(:, ind);
+
+% Select highest variance filter (first filter)
+%A_high_var_filter = V(:, 1:2);
+
+% Select lowest variance filter (last filter)
+A_high_var_filter = V(:, end-1:end);
+
+
+
+
+
+
+
+
+
+
+
+
+% Step 1: Compute composite covariance matrix
+A_cov_composite = A_Lclass_avg + A_Rclass_avg;
+
+% Step 2: Perform eigenvalue decomposition on composite covariance matrix
+[U, Lambda] = eig(A_cov_composite);
+
+% Step 3: Compute whitening matrix
+P = Lambda^(-0.5) * U';
+
+% Step 4: Apply the whitening transformation to the class covariance matrices
+A_Lclass_whitened = P * A_Lclass_avg * P';
+A_Rclass_whitened = P * A_Rclass_avg * P';
+
+% Step 5: Perform generalized eigenvalue decomposition on the whitened matrices
+[V, D] = eig(A_Lclass_whitened, A_Rclass_whitened);
+
+% Step 6: Sort eigenvalues and corresponding eigenvectors
+[~, ind] = sort(diag(D), 'descend');  % Sort in descending order
+V = V(:, ind);
+
+% Step 7: Select highest and lowest variance filters
+A_low_var_filter = V(:, 1:2);  % Highest variance for left class
+A_high_var_filter = V(:, end-1:end);  % Highest variance for right class
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%{
+% Select the most discriminative spatial filters (first and last few eigenvectors)
+num_filters = 2;  % Number of filters to select from each side (you can adjust this)
+W = V(:, [1:num_filters, end-num_filters+1:end]);  % Optimal CSP filters
+
+}%
+
+
+%{
+% Composite covariance matrix
+A_Whiten_compositeCov = A_Lclass_avg + A_Rclass_avg;
+    
+% Eigenvalue decomposition of composite covariance matrix
+[E_A, D_A] = eig(A_Lclass_avg, A_Whiten_compositeCov);
+    
+% Sort eigenvalues and eigenvectors
+[~, ind_A] = sort(diag(D_A), 'descend');
+E_A = E_A(:, ind_A);
+    
+% Whitening transformation
+P_A = sqrt(inv(D_A)) * E_A';
+    
+% Whiten the covariance matrices
+S1_A = P_A * A_Lclass_avg * P_A';
+S2_A = P_A * A_Rclass_avg * P_A';
+
+
+A_cov_composite = S1_A + S2_A;
+
+
+% Perform generalized eigenvalue decomposition for alpha band
+[V_alpha, D_alpha] = eig(S1_A, A_cov_composite);
+[~, ind_alpha] = sort(diag(D_alpha), 'descend');
+V_alpha = V_alpha(:, ind_alpha);
+
+
+% Select highest variance filter (first filter)
+A_high_var_filter = V_alpha(:, 1);
+
+% Select lowest variance filter (last filter)
+A_low_var_filter = V_alpha(:, end);
+
+
+
+%{
+% Whitening transformation for alpha band
+D_alpha_inv_sqrt = diag(1 ./ sqrt(diag(D_alpha))); % Inverse square root of eigenvalues
+W_alpha = D_alpha_inv_sqrt * V_alpha'; % Whitening matrix (W_alpha)
+}%
+
+%{
+
+% Perform generalized eigenvalue decomposition for alpha band
+[V_alpha, D_alpha] = eig(A_Lclass_avg, A_cov_composite);
+[~, ind_alpha] = sort(diag(D_alpha), 'descend');
+V_alpha = V_alpha(:, ind_alpha);
+
+}%
+
+}%
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+B_cov_composite = B_Lclass_avg + B_Rclass_avg;
+
+
+% Perform generalized eigenvalue decomposition
+[V, D] = eig(B_Lclass_avg, B_cov_composite);  % V are the eigenvectors, D are the eigenvalues
+
+
+% Sort eigenvalues and corresponding eigenvectors
+[~, ind] = sort(diag(D), 'descend');  % Sort in descending order
+V = V(:, ind);
+
+
+% Select the most discriminative spatial filters (first and last few eigenvectors)
+num_filters = 2;  % Number of filters to select from each side (you can adjust this)
+W = V(:, [1:num_filters, end-num_filters+1:end]);  % Optimal CSP filters
+
+
+
+
+% Select highest variance filter (first filter)
+B_high_var_filter = V(:, 1);
+
+% Select lowest variance filter (last filter)
+B_low_var_filter = V(:, end);
+
+
+%{
+
+
+
+
+
+
+% Composite covariance matrix
+B_Whiten_compositeCov = B_Lclass_avg + B_Rclass_avg;
+    
+% Eigenvalue decomposition of composite covariance matrix
+[E_B, D_B] = eig(B_Lclass_avg,B_Whiten_compositeCov);
+    
+% Sort eigenvalues and eigenvectors
+[~, ind_B] = sort(diag(D_B), 'descend');
+E_B = E_B(:, ind_B);
+    
+% Whitening transformation
+P_B = sqrt(inv(D_B)) * E_B';
+    
+% Whiten the covariance matrices
+S1_B = P_B * B_Lclass_avg * P_B';
+S2_B = P_B * B_Rclass_avg * P_B';
+
+
+B_cov_composite = S1_B + S2_B;
+
+
+% Perform generalized eigenvalue decomposition for alpha band
+[V_beta, D_beta] = eig(S1_B, B_cov_composite);
+[~, ind_beta] = sort(diag(D_beta), 'descend');
+V_beta = V_beta(:, ind_beta);
+
+
+% Select highest variance filter (first filter)
+B_high_var_filter = V_beta(:, 1);
+
+% Select lowest variance filter (last filter)
+B_low_var_filter = V_beta(:, end);
+
+
+
+}
+%
+
+
+
+kdata{1} = dataMatrices_CAR(3280:3920,:);
+
+kdata{2} = dataMatrices_CAR(9840:10480,:); %61.5-65.5
+%kdata{2} = dataMatrices(12464:13104,:); %77.9-81.9
+kdata{3} = dataMatrices_CAR(15088:15728,:); %94.3-98.3
+%kdata{4} = dataMatrices(17712:18352,:); %110.7-114.7
+
+kdata{4} = dataMatrices_CAR(7216:7856,:);
+
+
+%T2
+bdata{1} = dataMatrices_CAR(8528:9168,:); %53.3-57.3
+bdata{2} = dataMatrices_CAR(11152:11792,:); %69.7-73.7
+bdata{3} = dataMatrices_CAR(13776:14416,:); %86.1 - 90.1
+bdata{4} = dataMatrices_CAR(16400:17040,:); %102.5 - 106.5
+
+
+% Define sampling frequency
+fs = 160; % Hz
+% Define alpha frequency range (8-12 Hz)
+alpha_band = [10, 12]; % Hz
+
+% Define alpha frequency range (8-12 Hz)
+beta_band = [13, 30]; % Hz
+[b1, a1] = butter(4, alpha_band / (fs / 2), 'bandpass');
+%[b2, a2] = butter(4, beta_band / (fs / 2), 'bandpass');
+
+
+
+
+for i = 1:4
+	
+	
+	padded_kalpha{i} = [zeros(160, 9); kdata{i}; zeros(160, 9)];
+	%f_kalpha_data{i} = filter(b1, a1, padded_kalpha{i});
+	f_kalpha_data{i} = filtfilt(b1,a1,padded_kalpha{i});
+	kalpha_data{i} = f_kalpha_data{i}(161:end-160,:);
+%	kalpha_data{i} = kalpha_data{i} - baseline_data;
+%	kalpha_data{i} = zscore(kalpha_data{i})
+
+	padded_balpha{i} = [zeros(160, 9); bdata{i}; zeros(160, 9)];	
+%	f_balpha_data{i} = filter(b1, a1, padded_balpha{i});
+	f_balpha_data{i} = filtfilt(b1,a1, padded_balpha{i});
+	balpha_data{i} = f_balpha_data{i}(161:end-160,:);
+%	balpha_data{i} =	balpha_data{i} - baseline_data;
+	%balpha_data{i} = zscore(balpha_data{i})
+	
+	
+end
+
+
+for i = 1:4
+
+	A_Hug1{i} = A_high_var_filter' * kalpha_data{i}' ;  % Projection for left-hand movement
+	A_Hug2{i} = A_high_var_filter' * balpha_data{i}'; % Projection for right-hand movement
+	
+	%B_Hug1{i} = A_low_var_filter' * kalpha_data{i}';
+%	B_Hug2{i} = A_low_var_filter' * balpha_data{i}';
+	
+	
+	
+%	B_Hug1{i} = B_high_var_filter' * kbeta_data{i}' ;  % Projection for left-hand movement
+%	B_Hug2{i} = B_low_var_filter' * kbeta_data{i}' ; % Projection for right-hand movement
+
+end
+
+%{
+for i = 1:4
+	A_Hug1{i} = (A_Hug1{i}).^2
+	A_Hug2{i} = (A_Hug2{i}).^2
+end
+
+for i = 1:8
+	% Compute log-variance for left-hand and right-hand movement
+	alpha_var1{i} = log(var(A_Hug1{i}));  % Log-variance for left-hand movement (high variance filter)
+	alpha_var2{i} = log(var(A_Hug2{i})); % Log-variance for right-hand movement (high variance filter)
+	
+	
+	% Compute log-variance for left-hand and right-hand movement
+	beta_var1{i} = log(var(B_Hug1{i}));  % Log-variance for left-hand movement (high variance filter)
+	beta_var2{i} = log(var(B_Hug2{i})); % Log-variance for right-hand movement (high variance filter)
+end
+
+
+
+
+
+for j = 1:4
+	A_Hug1{j} = A_Hug1{j}';
+end
+for j = 1:4
+	A_Hug2{j} = A_Hug2{j}';
+end
+
+
+for j = 1:4
+	B_Hug1{j} = B_Hug1{j}';
+end
+for j = 1:4
+	B_Hug2{j} = B_Hug2{j}';
+end
+
+
+
+for i = 1:2
+      for j = 1:4
+	% Compute log-variance for left-hand and right-hand movement
+		alpha_var1{j}(i,:) = log(var(A_Hug1{j}(:,i)));  % Log-variance for left-hand movement (high variance filter)
+		alpha_var2{j}(i,:) = log(var(A_Hug2{j}(:,i))); % Log-variance for right-hand movement (high variance filter)
+	
+	end
+end
+
+
+
+
+for i = 1:2
+      for j = 1:4
+	% Compute log-variance for left-hand and right-hand movement
+		B_var1{j}(i,:) = log(var(B_Hug1{j}(:,i)));  % Log-variance for left-hand movement (high variance filter)
+		B_var2{j}(i,:) = log(var(B_Hug2{j}(:,i))); % Log-variance for right-hand movement (high variance filter)
+	
+	end
+end
+
+
+
+
+
+
+ for j = 1:4
+	% Compute log-variance for left-hand and right-hand movement
+		alpha_var1{j} = log(var(A_Hug1{j}));  % Log-variance for left-hand movement (high variance filter)
+		alpha_var2{j} = log(var(A_Hug2{j})); % Log-variance for right-hand movement (high variance filter)
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%T1
+%S_data{1} = dataMatrices7(1968:2608,:); %12.3-16.3
+S_data{1} = dataMatrices7(3280:3920,:); %20.5-24.5
+S_data{2} = dataMatrices7(7216:7856,:); %45.1-49.1
+%S_data{4} = dataMatrices7(8528:9168,:); %53.3-57.3
+S_data{3} = dataMatrices7(12464:13104,:); %77.9-81.9
+S_data{4} = dataMatrices7(13776:14416,:); %86.1-90.1
+%S_data{7} = dataMatrices7(17712:18352,:); %110.7-114.7
+
+
+
+
+%T2
+%H_data{1} = dataMatrices7(656:1296,:); %4.1-8.1
+H_data{1} = dataMatrices7(4592:5232,:); %28.7-32.7
+H_data{2} = dataMatrices7(5904:6544,:); %36.9-40.9
+H_data{3} = dataMatrices7(9840:10480,:); %61.5-65.5
+%H_data{4} = dataMatrices7(11152:11792,:); %69.7-73.7
+H_data{4} = dataMatrices7(15088:15728,:); %94.3-98.3
+H_data{5} = dataMatrices7(16400:17040,:); %102.5-106.5
+%H_data{7} = dataMatrices7(19024:19520,:); %118.9-122
+
+
+
+
+% Define sampling frequency
+fs = 160; % Hz
+% Define alpha frequency range (8-12 Hz)
+alpha_band = [10, 12]; % Hz
+
+% Define alpha frequency range (8-12 Hz)
+beta_band = [13, 30]; % Hz
+[b1, a1] = butter(4, alpha_band / (fs / 2), 'bandpass');
+[b2, a2] = butter(4, beta_band / (fs / 2), 'bandpass');
+
+
+
+
+for i = 1:4
+
+
+	padded_S_data{i} = [zeros(160, 9);S_data{i} ; zeros(160, 9)];
+	%f_S_alpha_data{i} = filter(b1, a1, padded_S_data{i});
+	f_S_alpha_data{i} = filtfilt(b1,a1,padded_S_data{i});
+	S_alpha_data{i}= f_S_alpha_data{i}(161:end-160,:);
+	S_alpha_data{i} = S_alpha_data{i} - baseline_data
+	S_alpha_data{i} = zscore(S_alpha_data{i});
+%	S_alpha_data{i} = zscore(S_alpha_data{i});
+	%S_beta_data{i} = filter(b2, a2, S_data{i});
+	
+	padded_H_data{i} = [zeros(160, 9);H_data{i} ; zeros(160, 9)];
+	%f_S_alpha_data{i} = filter(b1, a1, padded_S_data{i});
+	f_H_alpha_data{i} = filtfilt(b1,a1,padded_H_data{i});
+	H_alpha_data{i}= f_H_alpha_data{i}(161:end-160,:);
+	H_alpha_data{i} = H_alpha_data{i} - baseline_data
+	H_alpha_data{i} = zscore(H_alpha_data{i});
+%	H_alpha_data{i} = zscore(H_alpha_data{i});
+	
+end
+
+
+for i = 1:4
+
+	S_A_Hug1{i} = A_high_var_filter' * S_alpha_data{i}' ;  % Projection for left-hand movement
+	%S_A_Hug2{i} = A_low_var_filter' * S_alpha_data{i}'; % Projection for right-hand movement
+	
+	H_A_Hug1{i} = A_high_var_filter' * H_alpha_data{i}' ;
+%	S_B_Hug1{i} = B_high_var_filter' * S_beta_data{i}' ;  % Projection for left-hand movement
+%	S_B_Hug2{i} = B_low_var_filter' * S_beta_data{i}' ; % Projection for right-hand movement
+
+end
+
+
+
+for j = 1:4
+	S_A_Hug1{j} = S_A_Hug1{j}';
+end
+
+for j = 1:4
+	H_A_Hug1{j} = H_A_Hug1{j}';
+end
+
+for i = 1:2
+      for j = 1:4
+	% Compute log-variance for left-hand and right-hand movement
+		S_alpha_var1{j} = log(var(S_A_Hug1{j}));  % Log-variance for left-hand movement (high variance filter)
+%		S_alpha_var2{j} = log(var(S_A_Hug2{j})); % Log-variance for right-hand movement (high variance filter)
+		H_alpha_var1{j} = log(var(H_A_Hug1{j}));
+		
+	end
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%T1
+%E_data{1} = data3(656:1296,:); %4.1-8.1
+E_data{1} = dataMatrices3(3280:3920,:); %20.5-24.5
+E_data{2} = dataMatrices3(5904:6544,:); %36.9-40.9
+%E_data(4) = data3(8528:9168,:); %53.3-57.3
+E_data{3} = dataMatrices3(12464:13104,:); %77.9-81.9
+E_data{4} = dataMatrices3(13776:14416,:); %86.1-90.1
+E_data{5} = dataMatrices3(17712:18368,:); %110.7-114.8
+%E_data(8) = data3(19024:19664,:); %118.9-122.9
+
+
+
+%T2
+%E_data(8) = data3(1968:2608,:); %12.3-16.3
+F_data{1} = dataMatrices3(4592:5232,:); %28.7-32.7
+F_data{2}= dataMatrices3(7216:7856,:); %45.1-49.1
+%E_data(11) = data3(9840:10480,:); %61.5-65.5
+F_data{3} = dataMatrices3(11152:11792,:); %69.7-73.7
+F_data{4} = dataMatrices3(15088:15728,:); %94.3-98.3
+%E_data(14) = data3(16400:17040,:); %102.5-106.5
+
+
+
+
+for i = 1:4
+
+	padded_E_data{i} = [zeros(160, 9);E_data{i} ; zeros(160, 9)];
+	%f_S_alpha_data{i} = filter(b1, a1, padded_S_data{i});
+	f_E_alpha_data{i} = filtfilt(b1,a1,padded_E_data{i});
+	E_alpha_data{i} = f_E_alpha_data{i}(161:end-160,:);
+	E_alpha_data{i} = E_alpha_data{i} - baseline_data;
+	E_alpha_data{i} = zscore(E_alpha_data{i} );
+
+	%S_beta_data{i} = filter(b2, a2, S_data{i});
+	
+	padded_F_data{i} = [zeros(160, 9);F_data{i} ; zeros(160, 9)];
+	%f_S_alpha_data{i} = filter(b1, a1, padded_S_data{i});
+	f_F_alpha_data{i} = filtfilt(b1,a1,padded_F_data{i});
+	F_alpha_data{i}= f_F_alpha_data{i}(161:end-160,:);
+	F_alpha_data{i} = F_alpha_data{i}  - baseline_data;
+	F_alpha_data{i} = zscore(F_alpha_data{i});
+	
+end
+
+
+
+
+for i = 1:4
+
+	E_A_Hug1{i} = A_high_var_filter' * E_alpha_data{i}' ;  % Projection for left-hand movement
+	%S_A_Hug2{i} = A_low_var_filter' * S_alpha_data{i}'; % Projection for right-hand movement
+	
+	F_A_Hug1{i} = A_high_var_filter' * F_alpha_data{i}' ;
+%	S_B_Hug1{i} = B_high_var_filter' * S_beta_data{i}' ;  % Projection for left-hand movement
+%	S_B_Hug2{i} = B_low_var_filter' * S_beta_data{i}' ; % Projection for right-hand movement
+
+end
+
+
+
+for j = 1:4
+	E_A_Hug1{j} = E_A_Hug1{j}';
+end
+
+for j = 1:4
+	F_A_Hug1{j} = F_A_Hug1{j}';
+end
+
+for i = 1:2
+      for j = 1:4
+	% Compute log-variance for left-hand and right-hand movement
+		E_alpha_var1{j} = log(var(E_A_Hug1{j}));  % Log-variance for left-hand movement (high variance filter)
+%		S_alpha_var2{j} = log(var(S_A_Hug2{j})); % Log-variance for right-hand movement (high variance filter)
+		F_alpha_var1{j} = log(var(F_A_Hug1{j}));
+		
+	end
+end
+
+
+
+
+edf_data3 = edfread("");
+
+info = edfinfo("");
+
+annotations = info.Annotations
+
+
+
+
+numElectrodes = 9;
+numSegments = 123;
+segmentLength = 160;
+
+
+
+% Preallocate the final matrix
+noneDataMatrix3 = zeros(numSegments * segmentLength, numElectrodes);
+
+% Process each electrode
+for electrodeIdx = 1:numElectrodes
+    % Extract data for the current electrode
+    electrodeData = edf_data3{:, electrodeIdx};
+    
+    % Initialize an empty vector to concatenate data points
+    concatenatedData = [];
+    
+    % Concatenate data from each segment
+    for segmentIdx = 1:numSegments
+        concatenatedData = [concatenatedData; electrodeData{segmentIdx}];
+    end
+    
+    % Store the concatenated data in the final matrix
+    noneDataMatrix3(:, electrodeIdx) = concatenatedData;
+end
+
+data3 = noneDataMatrix3;
+
+
+
+
+
+% Define the cell arrays
+current_channel_names = {'Fc5', 'Fc3', 'Fc1', 'Fcz', 'Fc2', 'Fc4', 'Fc6', 'C5', 'C3', 'C1', 'Cz', ...
+    'C2', 'C4', 'C6', 'Cp5', 'Cp3', 'Cp1', 'Cpz', 'Cp2', ...
+    'Cp4', 'Cp6', 'Fp1', 'Fpz', 'Fp2', 'Af7', 'Af3', 'Afz', ...
+    'Af4', 'Af8', 'F7', 'F5', 'F3', 'F1', 'Fz', 'F2', 'F4', 'F6', ...
+    'F8', 'Ft7', 'Ft8', 'T7', 'T8', 'T9', 'T10', 'Tp7', 'Tp8', 'P7', ...
+    'P5', 'P3', 'P1', 'Pz', 'P2', 'P4', 'P6', 'P8', 'Po7', 'Po3', 'Poz', ...
+    'Po4', 'Po8', 'O1', 'Oz', 'O2', 'Iz'};
+
+desired_channel_names = {'Fp1','Af7','Af3','F1','F3','F5','F7','Ft7','Fc5','Fc3','Fc1','C1','C3','C5','T7','Tp7','Cp5','Cp3','Cp1', ...
+    'P1','P3','P5','P7','P9','Po7','Po3','O1','Iz','Oz','Poz','Pz','Cpz','Fpz','Fp2','Af8','Af4','Afz','Fz', ...
+    'F2','F4','F6','F8','Ft8','Fc6','Fc4','Fc2','Fcz','Cz','C2','C4','C6','T8','Tp8','Cp6','Cp4','Cp2','P2', ...
+    'P4','P6','P8','P10','Po8','Po4','O2'};
+
+% Find unique channels in both arrays
+unique_in_current = setdiff(current_channel_names, desired_channel_names);
+unique_in_desired = setdiff(desired_channel_names, current_channel_names);
+
+% Replace unique channels with 'X' in current_channel_names
+for i = 1:length(current_channel_names)
+    if ismember(current_channel_names{i}, unique_in_current)
+        current_channel_names{i} = 'X';
+    end
+end
+
+% Replace unique channels with 'X' in desired_channel_names
+for i = 1:length(desired_channel_names)
+    if ismember(desired_channel_names{i}, unique_in_desired)
+        desired_channel_names{i} = 'X';
+    end
+end
+
+
+
+
+% Initialize an empty matrix for reordered data
+reordered_data3 = zeros(size(data3, 1), length(desired_channel_names));
+
+% Reorder columns according to the desired channel names
+for i = 1:length(desired_channel_names)
+    if strcmp(desired_channel_names{i}, 'X')
+        % Fill with zeros or handle as needed for missing channels
+        reordered_data3(:, i) = 0; % Or some other handling
+    else
+        % Find the index of the current desired channel in the current channel names
+        idx = find(strcmp(current_channel_names, desired_channel_names{i}));
+        if ~isempty(idx)
+            % Reorder columns
+            reordered_data3(:, i) = data3(:, idx);
+        else
+            error('Channel %s not found in current channel names.', desired_channel_names{i});
+        end
+    end
+end
+
+% Update the data and channel names
+data3 = reordered_data3;
+current_channel_names = desired_channel_names;
+
+
+
+
+
+Data3 = data3';
+
+coordinates = importdata("coordinates.csv");
+
+X = coordinates(1,:);
+Y = coordinates(2,:);
+Z = coordinates(3,:);
+
+
+surf_lapP3 = laplacian_perrinX(Data3,X,Y,Z,[],1e-5); 
+
+
+data3 = surf_lapP3';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%T1
+%E_data{1} = data3(656:1296,:); %4.1-8.1
+E_data{1} = dataMatrices3(3280:3920,:); %20.5-24.5
+E_data{2} = dataMatrices3(5904:6544,:); %36.9-40.9
+%E_data(4) = data3(8528:9168,:); %53.3-57.3
+E_data{3} = dataMatrices3(12464:13104,:); %77.9-81.9
+E_data{4} = dataMatrices3(13776:14416,:); %86.1-90.1
+E_data{5} = dataMatrices3(17712:18368,:); %110.7-114.8
+%E_data(8) = data3(19024:19664,:); %118.9-122.9
+
+
+
+%T2
+%E_data(8) = data3(1968:2608,:); %12.3-16.3
+F_data{1} = dataMatrices3(4592:5232,:); %28.7-32.7
+F_data{2}= dataMatrices3(7216:7856,:); %45.1-49.1
+%E_data(11) = data3(9840:10480,:); %61.5-65.5
+F_data{3} = dataMatrices3(11152:11792,:); %69.7-73.7
+F_data{4} = dataMatrices3(15088:15728,:); %94.3-98.3
+%E_data(14) = data3(16400:17040,:); %102.5-106.5
+
+
+
+
+% Define sampling frequency
+fs = 160; % Hz
+% Define alpha frequency range (8-12 Hz)
+alpha_band = [10, 12]; % Hz
+
+% Define alpha frequency range (8-12 Hz)
+beta_band = [13, 30]; % Hz
+[b1, a1] = butter(4, alpha_band / (fs / 2), 'bandpass');
+[b2, a2] = butter(4, beta_band / (fs / 2), 'bandpass');
+
+
+
+
+for i = 1:4
+
+	padded_E_data{i} = [zeros(160, 9);E_data{i} ; zeros(160, 9)];
+	%f_S_alpha_data{i} = filter(b1, a1, padded_S_data{i});
+	f_E_alpha_data{i} = filtfilt(b1,a1,padded_E_data{i});
+	E_alpha_data{i}= f_E_alpha_data{i}(161:end-160,:);
+
+	%S_beta_data{i} = filter(b2, a2, S_data{i});
+	
+	padded_F_data{i} = [zeros(160, 9);F_data{i} ; zeros(160, 9)];
+	%f_S_alpha_data{i} = filter(b1, a1, padded_S_data{i});
+	f_F_alpha_data{i} = filtfilt(b1,a1,padded_F_data{i});
+	F_alpha_data{i}= f_F_alpha_data{i}(161:end-160,:);
+	
+end
+
+
+for i = 1:14
+
+	E_A_Hug1(i) = A_high_var_filter' * E_alpha_data(i) ;  % Projection for left-hand movement
+	E_A_Hug2(i) = A_low_var_filter' * E_alpha_data(i); % Projection for right-hand movement
+	
+	E_B_Hug1(i) = B_high_var_filter' * E_beta_data(i) ;  % Projection for left-hand movement
+	E_B_Hug2(i) = B_low_var_filter' * E_beta_data(i) ; % Projection for right-hand movement
+
+end
+
+
+
+for i = 1:14
+	% Compute log-variance for left-hand and right-hand movement
+	E_alpha_var1(i) = log(var(E_A_Hug1(i)));  % Log-variance for left-hand movement (high variance filter)
+	E_alpha_var2(i) = log(var(E_A_Hug2(i))); % Log-variance for right-hand movement (high variance filter)
+	
+	
+	% Compute log-variance for left-hand and right-hand movement
+	E_beta_var1(i) = log(var(E_B_Hug1(i)));  % Log-variance for left-hand movement (high variance filter)
+	E_beta_var2(i) = log(var(E_B_Hug2(i))); % Log-variance for right-hand movement (high variance filter)
+end
+
+
+
+
+
+
+for i = 1:14
+	E_features(i,:) = [E_alpha_var1(i) ,E_alpha_var2(i) , E_beta_var1(i) , E_beta_var2(i)]
+end
+
+
+%T2 = right, -1
+%T1 = left, 1
+
+feature_matrix = [features; S_features ;E_features];
+
+
+
+A = ones(1,4); %T1
+B = zeros(1,4); %T2
+C = ones(1,7) %T1
+D = zeros(1,7) %T2
+E = ones(1,7) %T1
+F = zeros(1,7) %T2
+
+labels_matrix = [A;B;C;D;E;F]
+
+labels_matrix(labels_matrix == 0) = -1; % SVM typically expects -1 and 1 for binary classification
+
+
+SVMModel = fitcsvm(feature_matrix, labels_matrix, 'KernelFunction', 'linear', 'Standardize', true);
+
+
+
+%for the first time
+
+%{
+feature1 = [alpha_var1];
+feature2 = [alpha_var2];
+feature3 = [beta_var1];
+feature4 = [beta_var2];
+
+
+feature1 = [feature1, alpha_var1];
+feature2 = [feature1, alpha_var2];
+feature3 = [feature1, beta_var1];
+feature4 = [feature1, beta_var2];
+}%
+
+
+features(i,:) = [alpha_var1,alpha_var2, beta_var1, beta_var2]
+
+% My focus right now is to just create a feature matrix, 
+% where we have all our different datasets, from the same subject, we will
+%have 3 edf files -> from the first one, 
+%I already used 3 to create the spatial filters
+% okay wait, my goal is different actually, let's find some sort of way
+% to put all of the data I aquire into a matrix, and then we can completely
+%automate the process of using CSP and SVM by just adjusting the folds
+% for the CSP or the SVM, like if we need more data for spatial filters
+%to average across, than we can do just that, so hopefully this 
+%works, this will be used to first create a motor movement detection for 
+% 1 person, and then we'll see if we could apply it to all subjects 
+
+% EDF DATA 
+
+edf_data3 = edfread("");
+
+info3 = edfinfo("");
+
+annotations3 = info3.Annotations
+
+
+
+
+C3_3 = edf_data3(:,9);
+C4_3 = edf_data3(:,13);
+Cz_3 = edf_data3(:,11);
+
+CP3_3 = edf_data3(:,16);
+CP4_3 = edf_data3(:, 20);
+CPz_3 = edf_data3(:,18);
+		
+FC3_3 = edf_data3(:, 2);
+FC4_3 = edf_data3(:, 6);
+FCz_3 = edf_data3(:, 4);
+
+
+
+
+		
+dataMatrices3 = [C3_3, C4_3, Cz_3, CP3_3, CP4_3, CPz_3, FC3_3 , FC4_3 , FCz_3];
+
+
+
+numElectrodes = 9;
+numSegments = 123;
+segmentLength = 160;
+
+
+
+% Preallocate the final matrix
+noneDataMatrix = zeros(numSegments * segmentLength, numElectrodes);
+
+% Process each electrode
+for electrodeIdx = 1:numElectrodes
+    % Extract data for the current electrode
+    electrodeData = edf_data{:, electrodeIdx};
+    
+    % Initialize an empty vector to concatenate data points
+    concatenatedData = [];
+    
+    % Concatenate data from each segment
+    for segmentIdx = 1:numSegments
+        concatenatedData = [concatenatedData; electrodeData{segmentIdx}];
+    end
+    
+    % Store the concatenated data in the final matrix
+    noneDataMatrix(:, electrodeIdx) = concatenatedData;
+end
+
+data3 = noneDataMatrix;
+
+
+
+data3(1) = data3(656:1296,:);
+data3(2) = data3(3280:3920,:);
+data3(3) = data(7216:7856,:);
+
+data3(4) = data3(1968:2608,:);
+data3(5) = data3(4592:5232,:);
+data3(6) = data(5904:6544,:);
+
+
+% Define sampling frequency
+fs = 160; % Hz
+% Define alpha frequency range (8-12 Hz)
+alpha_band = [8, 12]; % Hz
+
+% Define alpha frequency range (8-12 Hz)
+beta_band = [13, 30]; % Hz
+[b1, a1] = butter(4, alpha_band / (fs / 2), 'bandpass');
+[b2, a2] = butter(4, beta_band / (fs / 2), 'bandpass');
+
+
+for i = 1:6
+
+	alpha_data3(i) = filter(b1, a1, data3(i));
+	
+	beta_data3(i) = filter(b2, a2, data3(i));
+	
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+A_Hug1 = A_high_var_filter' * alpha_data ;  % Projection for left-hand movement
+A_Hug2 = A_low_var_filter' * alpha_data; % Projection for right-hand movement
+
+B_Hug1 = B_high_var_filter' * beta_data ;  % Projection for left-hand movement
+B_Hug2 = B_low_var_filter' * beta_data; % Projection for right-hand movement
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+% Example assuming 60 trials: 30 for left hand (T1) and 30 for right hand (T2)
+num_trials_T1 = 30;  % Trials for left hand
+num_trials_T2 = 30;  % Trials for right hand
+
+
+
+% Create label vector
+y = [ones(num_trials_T1, 1); -ones(num_trials_T2, 1)];
+
+
+% Append elements as we go on 
+%vec = [features,alpha_var1,alpha_var2, beta_var1, beta_var2 ];   % vec becomes [1, 2, 3, 4]
+
+SVMModel = fitcsvm(features, y, 'KernelFunction', 'linear', 'Standardize', true);
+
+SVMModel = fitcsvm(features, y, 'KernelFunction', 'rbf', 'Standardize', true);
+
+
+CVSVMModel = crossval(SVMModel);
+classLoss = kfoldLoss(CVSVMModel);
+fprintf('Cross-validation classification loss: %.4f\n', classLoss);
+
+
