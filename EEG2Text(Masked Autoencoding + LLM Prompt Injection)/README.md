@@ -1,4 +1,4 @@
-E2T-PTR
+inspired by E2T-PTR paper
 
 Brain Signal-to-Text Generation Using Masked Autoencoding and LLM Prompt Injection
 
